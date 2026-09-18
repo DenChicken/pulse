@@ -228,7 +228,6 @@ void test_set_endpoints_resets_stats() {
     check(prober.stats()[0].missed_in_row == 0, "set_endpoints resets stats");
 }
 
-
 void test_collect_returns_early() {
     pulse::Agent agent{agent_config(FIRST_PORT, POLL_TIMEOUT_MS)};
     static_cast<void>(agent.start());

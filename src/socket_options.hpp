@@ -1,9 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <sys/socket.h>
 #include <sys/time.h>
-
-#include <cstdint>
 
 namespace pulse {
 

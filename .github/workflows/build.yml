@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CTEST_TIMEOUT: '60'
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check Formatting
+        run: |
+          bash scripts/clang_format.sh
+          if ! git diff --quiet; then
+            echo "clang-format changed files:"
+            git diff --name-only
+            exit 1
+          fi
+
+  build:
+    name: ${{ matrix.compiler }} ${{ matrix.build-type }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        build-type: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure
+        run: |
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            export CXX=clang++
+          else
+            export CXX=g++
+          fi
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+
+      - name: Build
+        run: cmake --build build --parallel "$(nproc)"
+
+      - name: Tests
+        run: ctest --test-dir build -V --timeout ${{ env.CTEST_TIMEOUT }}
+
+  sanitizers:
+    name: Sanitizers
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+
+      - name: Build
+        run: cmake --build build --parallel "$(nproc)"
+
+      - name: Tests
+        run: ctest --test-dir build -V --timeout ${{ env.CTEST_TIMEOUT }}
+
+  thread-sanitizer:
+    name: Thread Sanitizer
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer"
+
+      - name: Build
+        run: cmake --build build --parallel "$(nproc)"
+
+      - name: Tests
+        run: ctest --test-dir build -V --timeout ${{ env.CTEST_TIMEOUT }}

@@ -1,10 +1,9 @@
 #include "pulse/prober.hpp"
 
+#include <chrono>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include <chrono>
 
 #include "protocol.hpp"
 #include "socket_options.hpp"
